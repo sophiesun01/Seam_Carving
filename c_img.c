@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <math.h>
 
+
+
 void create_img(struct rgb_img **im, size_t height, size_t width){
     *im = (struct rgb_img *)malloc(sizeof(struct rgb_img));
     (*im)->height = height;
@@ -73,65 +75,132 @@ void print_grad(struct rgb_img *grad){
 // create helper function to get the gradiant for each colour
 uint8_t dual_grad(int y, int x, struct rgb_img *im, size_t height, size_t width){
     uint8_t pix_left, pix_right, pix_up, pix_down;
+    //creating the general case of what left, right, up, and down should be
+    int left = x-1;
+    int right = x+1;
+    int up = y-1;
+    int down = y+1;
+
     int sum_x = 0;
     int sum_y = 0;
-    int x_coord = x,  y_coord = y;
+
     for(int col = 0; col <3; col++){
+        //changing the unique edge cases so it wraps around
         if(x == 0){
-            pix_left = get_pixel(im, y, width-1, col);
-            pix_right = get_pixel(im, y, x+1, col);
-            pix_up = get_pixel(im, y+1, x, col);
-            pix_down = get_pixel(im, y-1, x, col);
+            left = width - 1;
         }
         if(x == width-1){
-            pix_left = get_pixel(im, y, x-1, col);
-            pix_right = get_pixel(im, y, 0, col);
-            pix_up = get_pixel(im, y+1, x, col);
-            pix_down = get_pixel(im, y-1, x, col);
+            right = 0;
         }
         if(y == 0){
-            pix_left = get_pixel(im, y, x-1, col);
-            pix_right = get_pixel(im, y, x+1, col);
-            pix_up = get_pixel(im, y+1, x, col);
-            pix_down = get_pixel(im, height-1, x, col);
+            up = height-1;
         }
-        if(y== height-1){
-            pix_left = get_pixel(im, y, x-1, col);
-            pix_right = get_pixel(im, y, x+1, col);
-            pix_up = get_pixel(im, 0, x, col);
-            pix_down = get_pixel(im, y-1, x, col);
+        if(y == height-1){
+            down = 0;
         }
-        if(x> 0 && x<width && y >0 && y <height){
-            pix_left = get_pixel(im, y, x-1, col);
-            pix_right = get_pixel(im, y, x+1, col);
-            pix_up = get_pixel(im, y+1, x, col);
-            pix_down = get_pixel(im, y-1, x, col);
-        }
+        //getting the pixels around the pixel at (y, x)
+        pix_left = get_pixel(im, y, left, col);
+        pix_right = get_pixel(im, y, right, col);
+        pix_up = get_pixel(im, up, x, col);
+        pix_down = get_pixel(im, down, x, col);
+
+        //calculating the differential to get the gradient
         int x_diff = pix_right - pix_left;
         int y_diff = pix_up - pix_down;
         sum_x += pow(x_diff, 2);
         sum_y += pow(y_diff, 2);
     }
+    //taking the x, y sums and performing operations to turn it into the gradient 
     double sum = sum_x + sum_y;
+
     printf("y: %d, x: %d\n", y, x);
-    printf("%lf\n", sum);
+    //printf("%lf\n", sum);
     double square_root = (uint8_t)sqrt(sum);
     uint8_t grad = (uint8_t)(square_root/10);
+    printf("%d\n", grad);
     return grad;
 }
 
 
 void calc_energy(struct rgb_img *im, struct rgb_img **grad){
     uint8_t energy;
+
+    //getting the height and width of the image
     size_t height = im->height;
     size_t width = im->width;
+
+    //creating an image to store the gradient energy value
     create_img(grad, height, width);
+
+    //inserting the height and width of the grad struct 
+    (*grad)->height = height;
+    (*grad)->width = width;
+
     for(int y=0; y< im->height; y++){
-        for(int x=0; x< (im)->width;x++){
+        for(int x=0; x< (im)->width; x++){
             energy = dual_grad(y, x, im, height, width);
             set_pixel(*grad, y, x, energy, energy, energy);
         }
     }
 }
 
+double min2(double emid, double eside){
+    if(emid < eside){
+        return emid;
+    }
+    else{
+        return eside;
+    }
+}
+
+double min3(double emid, double eleft, double eright){
+    if(emid <= eright && emid <= eleft){
+        return emid;
+    }
+    else if(eright < eleft){
+        return eright;
+    }
+    else{
+        return eleft;
+    }
+}
+
+void dynamic_seam(struct rgb_img *grad, double **best_arr)
+{
+    //i = y coordinate, j = x coordinate
+    int i = 0, j = 0;
+    double emid, eright, eleft, e_min;
+    uint8_t *grad_arr = grad->raster;
+    size_t height = grad->height;
+    size_t width = grad->width;
+
+    //initializing the array
+    *best_arr = (double *)malloc(sizeof(double)* (height) * (width));
+    while(j< width){
+        (*best_arr)[j] = grad_arr[j];
+        j++;
+    }
+    for(i = 1; i < height; i++){
+        for(j = 0; j < width; j++){
+            emid = (*best_arr)[i*(width-1)+j];
+            if(j == 0){
+                eright = (*best_arr)[i*(width-1)+(j+1)];
+                e_min = min2(emid, eright) + grad_arr[i*width +j];
+            }
+            else if(j == width-1){
+                eleft = (*best_arr)[i*(width-1)+(j-1)];
+                e_min = min2(emid, eleft) + grad_arr[i*width +j];
+            }
+            //not at the first or last index of the row
+            else{
+                eleft = (*best_arr)[i*(width-1)+(j-1)];
+                eright = (*best_arr)[i*(width-1)+(j+1)];
+                e_min = min3(emid, eleft, eright) + grad_arr[i*width +j];
+            }
+            (*best_arr)[i*width +j] = e_min;
+
+        }
+
+    }
+}
 

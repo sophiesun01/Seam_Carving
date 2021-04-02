@@ -19,5 +19,5 @@ void set_pixel(struct rgb_img *im, int y, int x, int r, int g, int b);
 void destroy_image(struct rgb_img *im);
 void print_grad(struct rgb_img *grad);
 void calc_energy(struct rgb_img *im, struct rgb_img **grad);
-
+void dynamic_seam(struct rgb_img *grad, double **best_arr);
 #endif
