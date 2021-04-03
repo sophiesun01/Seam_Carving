@@ -94,6 +94,9 @@ uint8_t dual_grad(int y, int x, struct rgb_img *im, size_t height, size_t width)
         }
         if(y == 0){
             up = height-1;
+            if(x == 2 && y == 0){
+                printf("%d\n", up);
+            }
         }
         if(y == height-1){
             down = 0;
@@ -113,11 +116,11 @@ uint8_t dual_grad(int y, int x, struct rgb_img *im, size_t height, size_t width)
     //taking the x, y sums and performing operations to turn it into the gradient 
     double sum = sum_x + sum_y;
 
-    printf("y: %d, x: %d\n", y, x);
+    //printf("y: %d, x: %d\n", y, x);
     //printf("%lf\n", sum);
-    double square_root = (uint8_t)sqrt(sum);
+    double square_root = (double)sqrt(sum);
     uint8_t grad = (uint8_t)(square_root/10);
-    printf("%d\n", grad);
+    //printf("%d\n", grad);
     return grad;
 }
 
@@ -177,25 +180,25 @@ void dynamic_seam(struct rgb_img *grad, double **best_arr)
     //initializing the array
     *best_arr = (double *)malloc(sizeof(double)* (height) * (width));
     while(j< width){
-        (*best_arr)[j] = grad_arr[j];
+        (*best_arr)[j] = grad_arr[3*j];
         j++;
     }
     for(i = 1; i < height; i++){
         for(j = 0; j < width; j++){
-            emid = (*best_arr)[i*(width-1)+j];
+            emid = (*best_arr)[(i-1)*width+j];
             if(j == 0){
-                eright = (*best_arr)[i*(width-1)+(j+1)];
-                e_min = min2(emid, eright) + grad_arr[i*width +j];
+                eright = (*best_arr)[(i-1)*width+(j+1)];
+                e_min = min2(emid, eright) + grad_arr[3 * (i*width +j)];
             }
             else if(j == width-1){
-                eleft = (*best_arr)[i*(width-1)+(j-1)];
-                e_min = min2(emid, eleft) + grad_arr[i*width +j];
+                eleft = (*best_arr)[(i-1)*width+(j-1)];
+                e_min = min2(emid, eleft) + grad_arr[3 * (i*width +j)];
             }
             //not at the first or last index of the row
             else{
-                eleft = (*best_arr)[i*(width-1)+(j-1)];
-                eright = (*best_arr)[i*(width-1)+(j+1)];
-                e_min = min3(emid, eleft, eright) + grad_arr[i*width +j];
+                eleft = (*best_arr)[(i-1)*width+(j-1)];
+                eright = (*best_arr)[(i-1)*width+(j+1)];
+                e_min = min3(emid, eleft, eright) + grad_arr[3 * (i*width +j)];
             }
             (*best_arr)[i*width +j] = e_min;
 
@@ -204,3 +207,77 @@ void dynamic_seam(struct rgb_img *grad, double **best_arr)
     }
 }
 
+int int_min2(double *best, int cur, int next){
+    if(best[cur] < best[next]){
+        return cur;
+    }
+    else{
+        return next;
+    }
+}
+
+int int_min3(double *best, int mid, int left, int right)
+{
+    if(best[mid] <= best[right] && best[mid] <= best[left]){
+        return mid;
+    }
+    else if(best[right] < best[left]){
+        return right;
+    }
+    else{
+        return left;
+    }
+}
+
+void recover_path(double *best, int height, int width, int **path){
+    *path = (int *)malloc(sizeof(int)*height);
+    int i = height-1;
+    int j = 0;
+    int cur, next, temp_min;
+    int row_min = width * height - 1; //last index of the array
+    int left, right, mid;
+
+    //find the min in the last row
+    while(j < width-1){
+        cur = i*width + j;
+        next = cur + 1;
+        //stores the min from the last row in last_ind and in the last entry of **path
+        temp_min = int_min2(best, cur, next);
+        row_min = int_min2(best, temp_min, row_min);
+        j++;
+    }
+
+    //this insures you are giving the index of the row and not of the whole array
+    (*path)[i] = row_min % width;
+
+    for(i = height-2; i>=0; i--){
+
+        if(row_min == 0){
+            mid = row_min-width;
+            right = mid+1;
+            row_min = int_min2(best, mid, right);
+
+        }
+        else if(row_min == width-1){
+            mid = row_min-width;
+            left = mid-1;
+            row_min = int_min2(best, mid, left);
+
+        }
+        else{
+            mid = row_min-width;
+            left = mid-1;
+            right = mid+1;
+            row_min = int_min3(best, mid, left, right);
+
+
+        }
+
+        //same kerfuffle here as above
+        (*path)[i] = row_min%width;
+    }
+}
+
+void remove_seam(struct rgb_img *src, struct rgb_img **dest, int *path){
+    
+}
