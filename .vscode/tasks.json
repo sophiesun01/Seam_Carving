@@ -7,7 +7,8 @@
             "args": [
                 "-g",
                 "main.c",
-                "c_img.c"
+                "c_img.c",
+                "seamcarving.c",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"
             ],

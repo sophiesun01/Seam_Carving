@@ -1,4 +1,4 @@
-#include "c_img.h"
+#include "seamcarving.h"
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -39,4 +39,4 @@ int main(void){
     return 0;
 }
 
-//gcc main.c c_img.c -o main
+//gcc main.c seamcarving.c c_img.c -o main
