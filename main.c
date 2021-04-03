@@ -16,6 +16,7 @@ void print_arr(double *arr, size_t height, size_t width){
 int main(void){
     struct rgb_img *im;
     struct rgb_img *grad;
+    struct rgb_img *dest;
     double *best_arr;
     int *path;
     read_in_img(&im, "6x5.bin");
@@ -31,7 +32,10 @@ int main(void){
         printf("%d\n", path[k]);
     }
 
-    
+    remove_seam(im, &dest, path);
+    write_img(dest, "carved.bin");
+
+
     return 0;
 }
 

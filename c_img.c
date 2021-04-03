@@ -279,5 +279,49 @@ void recover_path(double *best, int height, int width, int **path){
 }
 
 void remove_seam(struct rgb_img *src, struct rgb_img **dest, int *path){
-    
+    size_t height = src->height;
+    size_t width = src->width;
+    uint8_t pix;
+    int r, g, b;
+    int y, x;
+    int cur_ind, remove_ind;
+    //after is a checker to see if we have already removed the desired index if so we have to shift the x-index by 1
+    int after = 0;
+    //after has values of 0 or 1; treat it as a boolean 0 == false, 1 == true
+    create_img(dest, height, width-1);
+    for(y=0; y< height; y++){
+        remove_ind = 3 * (y * width + path[y]);
+        for(x=0; x < width; x++){
+            cur_ind = 3 * (y * width + x);
+            for(int col = 0; col <3; col++){
+
+                //path[y] = the x coord 
+
+                if(cur_ind == remove_ind){
+                    after = 1;
+                    break;
+                }
+                pix = get_pixel(src, y, x, col);
+                
+                if(col ==0){
+                    r = pix;
+                }
+                else if(col == 1){
+                    g = pix;
+                }
+                else if(col == 2){
+                    b = pix;
+                }
+
+                if(after == 1){
+                    set_pixel(*dest, y, x-1, r, g, b);
+
+                }
+                else{
+                    set_pixel(*dest, y, x, r, g, b);
+                }
+            }
+        }
+        after = 0;
+    }
 }
