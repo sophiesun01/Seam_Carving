@@ -31,7 +31,7 @@ uint8_t dual_grad(int y, int x, struct rgb_img *im, size_t height, size_t width)
         if(y == height-1){
             down = 0;
         }
-        //getting the pixels around the pixel at (y, x)
+        //getting the pixels surrounding the pixel at (y, x)
         pix_left = get_pixel(im, y, left, col);
         pix_right = get_pixel(im, y, right, col);
         pix_up = get_pixel(im, up, x, col);
@@ -45,10 +45,8 @@ uint8_t dual_grad(int y, int x, struct rgb_img *im, size_t height, size_t width)
     }
     //taking the x, y sums and performing operations to turn it into the gradient 
     double sum = sum_x + sum_y;
-
     double square_root = (double)sqrt(sum);
     uint8_t grad = (uint8_t)(square_root/10);
-
     return grad;
 }
 
@@ -67,6 +65,7 @@ void calc_energy(struct rgb_img *im, struct rgb_img **grad){
     (*grad)->height = height;
     (*grad)->width = width;
 
+    //puting the gradiant energy into an image
     for(int y=0; y< im->height; y++){
         for(int x=0; x< (im)->width; x++){
             energy = dual_grad(y, x, im, height, width);
@@ -75,7 +74,9 @@ void calc_energy(struct rgb_img *im, struct rgb_img **grad){
     }
 }
 
+
 double min2(double emid, double eside){
+    //calculates minimum of two values
     if(emid < eside){
         return emid;
     }
@@ -85,6 +86,7 @@ double min2(double emid, double eside){
 }
 
 double min3(double emid, double eleft, double eright){
+    //calculates minimum of 3 values
     if(emid <= eright && emid <= eleft){
         return emid;
     }
@@ -107,13 +109,19 @@ void dynamic_seam(struct rgb_img *grad, double **best_arr)
 
     //initializing the array
     *best_arr = (double *)malloc(sizeof(double)* (height) * (width));
+
+    //storing the first row of the gradient raster into best_arr
     while(j< width){
         (*best_arr)[j] = grad_arr[3*j];
         j++;
     }
+
+    //iterating through using pointer algebra to find the least energy path
     for(i = 1; i < height; i++){
         for(j = 0; j < width; j++){
             emid = (*best_arr)[(i-1)*width+j];
+
+            //two edge cases when j is at the first or last index of the row
             if(j == 0){
                 eright = (*best_arr)[(i-1)*width+(j+1)];
                 e_min = min2(emid, eright) + grad_arr[3 * (i*width +j)];
@@ -122,12 +130,15 @@ void dynamic_seam(struct rgb_img *grad, double **best_arr)
                 eleft = (*best_arr)[(i-1)*width+(j-1)];
                 e_min = min2(emid, eleft) + grad_arr[3 * (i*width +j)];
             }
+ 
             //not at the first or last index of the row
             else{
                 eleft = (*best_arr)[(i-1)*width+(j-1)];
                 eright = (*best_arr)[(i-1)*width+(j+1)];
                 e_min = min3(emid, eleft, eright) + grad_arr[3 * (i*width +j)];
             }
+
+            //storing the minimum energy into each entry of the array
             (*best_arr)[i*width +j] = e_min;
 
         }
@@ -136,6 +147,7 @@ void dynamic_seam(struct rgb_img *grad, double **best_arr)
 }
 
 int int_min2(double *best, int cur, int next){
+    //calculates the min of two values and returns the index
     if(best[cur] < best[next]){
         return cur;
     }
@@ -144,8 +156,8 @@ int int_min2(double *best, int cur, int next){
     }
 }
 
-int int_min3(double *best, int mid, int left, int right)
-{
+int int_min3(double *best, int mid, int left, int right){
+    //calculates the min of three values and returns the index
     if(best[mid] <= best[right] && best[mid] <= best[left]){
         return mid;
     }
@@ -162,25 +174,29 @@ void recover_path(double *best, int height, int width, int **path){
     int i = height-1;
     int j = 0;
     int cur, next, temp_min;
-    int row_min = width * height - 1; //last index of the array
+    //arbitrarily selected the last index of the array as the one to store the minimum energy
+    int row_min = width * height - 1; 
     int left, right, mid;
 
     //find the min in the last row
     while(j < width-1){
         cur = i*width + j;
         next = cur + 1;
-        //stores the min from the last row in last_ind and in the last entry of **path
+        //stores the min from the last row in row_min 
         temp_min = int_min2(best, cur, next);
         row_min = int_min2(best, temp_min, row_min);
         j++;
     }
 
     //this insures you are giving the index of the row and not of the whole array
+    //stores the index of the last row with minimum energy
     (*path)[i] = row_min % width;
 
+    //starts from the bottom and looks at the right, left, and mid of the row above to find min path
     for(i = height-2; i>=0; i--){
-
+        //the two edge cases when you are at the left or right
         if(row_min == 0){
+            //row_min -width ensures you are looking at the row and index directly above current position
             mid = row_min-width;
             right = mid+1;
             row_min = int_min2(best, mid, right);

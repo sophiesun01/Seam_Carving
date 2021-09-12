@@ -25,7 +25,6 @@ int main(void){
     dynamic_seam(grad, &best_arr);
     print_arr(best_arr, grad->height, grad->width);
     recover_path(best_arr, grad->height, grad->width, &path);
-
     //printing the path
     printf("the path is\n");
     for(int k = 0; k < grad->height; k++){
@@ -34,7 +33,7 @@ int main(void){
 
     remove_seam(im, &dest, path);
     write_img(dest, "carved.bin");
-
+    print_grad(dest);
 
     return 0;
     // struct rgb_img *im;
@@ -67,3 +66,4 @@ int main(void){
 }
 
 //gcc main.c seamcarving.c c_img.c -o main
+
