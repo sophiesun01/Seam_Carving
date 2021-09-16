@@ -44,17 +44,12 @@ def read_image(filename):
 # write_image(image, "UofT.bin")
 
 #Read image from a bin file, save it to png
-im0 = read_image("bin_files/img0.bin")
-im1 = read_image("bin_files/img1.bin")
-im2 = read_image("bin_files/img2.bin")
-im3 = read_image("bin_files/img3.bin")
-im4 = read_image("bin_files/img4.bin")
-
-im0.save("png_files/img0.png")
-im1.save("png_files/img1.png")
-im2.save("png_files/img2.png")
-im3.save("png_files/img3.png")
-im4.save("png_files/img4.png")
+for i in range(0, 220, 20):
+    name = "resizing_"+str(i)
+    read_loc = "bin_files/"+name+".bin"
+    im = read_image(read_loc)
+    write_loc = "png_files/"+name+".png"
+    im.save(write_loc)
 # # im3 = read_image("6x5_grad.bin")
 # im1.save("dark.png")
 # im2.save("darker.png")
